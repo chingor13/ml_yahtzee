@@ -30,7 +30,7 @@ def run(
         epsilon=epsilon,
     )
     slot_agent = SlotAgent(
-        weights_path=slot_weights_path, input_size=18, output_size=13
+        weights_path=slot_weights_path, input_size=18, output_size=13, epsilon=epsilon
     )
 
     if roll_weights_path and os.path.exists(roll_weights_path):
@@ -49,7 +49,7 @@ def run(
         current_score = 0
         round_number = 1
         while not len(player.open_slots()) == 0:
-            print("Round #{round_number}")
+            print(f"Round #{round_number}")
             round = Round()
             roll_states = []
             while round.rolls < 3:
@@ -107,13 +107,12 @@ def run(
 
             round_number += 1
 
+        print(f"Game {games_run}\tScore: {player.total_score()}")
+        games_run += 1
+
         if train:
             roll_agent.replay_new(roll_agent.memory, batch_size)
             slot_agent.replay_new(slot_agent.memory, batch_size)
-
-        games_run += 1
-        print(f"Game {games_run}\tScore: {player.total_score()}")
-        if train:
             roll_agent.model.save_weights(roll_weights_path)
             slot_agent.model.save_weights(slot_weights_path)
 

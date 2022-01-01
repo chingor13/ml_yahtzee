@@ -120,7 +120,7 @@ class Agent:
         else:
             # predict action based on the old state
             prediction = self.model.predict(
-                state_old.reshape((1, state_old.num_fields))
+                state_old.to_data().reshape((1, state_old.num_fields))
             )
             weights = to_categorical(
                 numpy.argmax(prediction[0]), num_classes=self.output_size
