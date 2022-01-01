@@ -4,7 +4,6 @@ from tensorflow.keras import Input
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.utils import to_categorical
 import numpy
-import pandas
 import collections
 import random
 from typing import List, Union

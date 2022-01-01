@@ -1,8 +1,6 @@
 import click
 import os.path
-from typing import List, Union
-
-import numpy
+from typing import Union
 
 from agent import RollAgent, SlotAgent
 from yahtzee import InvalidAction, Player, Round
