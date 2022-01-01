@@ -28,6 +28,7 @@ class Agent:
         weights_path: str,
         input_size: int,
         output_size: int,
+        epsilon: float = 1.0,
         learning_rate: float = 0.0005,
         first_layer_size: int = 50,
         second_layer_size: int = 300,
@@ -38,7 +39,7 @@ class Agent:
         self.gamma = 0.9
         self.short_memory = numpy.array([])
         self.learning_rate = learning_rate
-        self.epsilon = 1
+        self.epsilon = epsilon
         self.first_layer = first_layer_size
         self.second_layer = second_layer_size
         self.third_layer = third_layer_size
@@ -112,6 +113,7 @@ class Agent:
 
     def predict(self, state_old: State) -> List[List[Union[int, float]]]:
         if random.uniform(0, 1) < self.epsilon:
+            print("using random prediction")
             weights = to_categorical(
                 random.randint(0, self.output_size - 1), num_classes=self.output_size
             )

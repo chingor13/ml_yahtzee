@@ -12,17 +12,22 @@ from yahtzee import InvalidAction, Player, Round
 @click.option("-i", "--iterations", "iterations", type=int, default=50)
 @click.option("-t", "--train", "train", type=bool, default=True)
 @click.option("-s", "--batch-size", "batch_size", type=int, default=1000)
+@click.option("-e", "--epsilon", "epsilon", type=float, default=1.0)
 def run(
     roll_weights_path: Union[str, None],
     slot_weights_path: Union[str, None],
     iterations: int,
     train: bool,
     batch_size: int,
+    epsilon: float,
 ):
     print("Starting...")
     print("Initializing agents...")
     roll_agent = RollAgent(
-        weights_path=roll_weights_path, input_size=19, output_size=32
+        weights_path=roll_weights_path,
+        input_size=19,
+        output_size=32,
+        epsilon=epsilon,
     )
     slot_agent = SlotAgent(
         weights_path=slot_weights_path, input_size=18, output_size=13
@@ -42,7 +47,9 @@ def run(
         print(f"Running game #{games_run + 1}")
         player = Player()
         current_score = 0
+        round_number = 1
         while not len(player.open_slots()) == 0:
+            print("Round #{round_number}")
             round = Round()
             roll_states = []
             while round.rolls < 3:
@@ -97,6 +104,8 @@ def run(
                         state_old, number, reward, state_new, done
                     )
                     roll_agent.remember(state_old, number, reward, state_new, done)
+
+            round_number += 1
 
         if train:
             roll_agent.replay_new(roll_agent.memory, batch_size)
