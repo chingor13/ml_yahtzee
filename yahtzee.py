@@ -81,7 +81,7 @@ class Player:
             and is_of_kind(round.dice, 5)
         ):
             self.bonus_yahtzees += 1
-        
+
         self.scores[index] = round.dice
 
         self.rounds += 1
@@ -91,12 +91,12 @@ class Player:
 
     def current_scores(self) -> List[Union[int, None]]:
         return [
-            tally_numbers(self.scores[0], 1),
-            tally_numbers(self.scores[1], 2),
-            tally_numbers(self.scores[2], 3),
-            tally_numbers(self.scores[3], 4),
-            tally_numbers(self.scores[4], 5),
-            tally_numbers(self.scores[5], 6),
+            tally_numbers(self.scores[0], 1, None),
+            tally_numbers(self.scores[1], 2, None),
+            tally_numbers(self.scores[2], 3, None),
+            tally_numbers(self.scores[3], 4, None),
+            tally_numbers(self.scores[4], 5, None),
+            tally_numbers(self.scores[5], 6, None),
             None
             if self.scores[6] is None
             else (sum(self.scores[6]) if is_of_kind(self.scores[6], 3) else 0),
@@ -134,16 +134,18 @@ class Player:
             + (30 if is_small_straight(self.scores[9]) else 0)
             + (40 if is_large_straight(self.scores[10]) else 0)
             + (50 if is_of_kind(self.scores[11], 5) else 0)
-            + sum(self.scores[12])
+            + (sum(self.scores[12]) if self.scores[12] else 0)
             + (100 * self.bonus_yahtzees)
         )
 
         return above + (35 if above >= 63 else 0) + below
 
 
-def tally_numbers(dice: Union[List[int], None], number: int) -> Union[int, None]:
+def tally_numbers(
+    dice: Union[List[int], None], number: int, empty_value: Union[int, None] = 0
+) -> Union[int, None]:
     if dice is None:
-        return None
+        return empty_value
     matching = [i for i in dice if i == number]
     return len(matching) * number
 
@@ -156,16 +158,22 @@ def number_counts(dice: List[int]) -> List[int]:
 
 
 def is_of_kind(dice: List[int], required_count: int) -> bool:
+    if dice is None:
+        return False
     counts = sorted(number_counts(dice), reverse=True)
     return counts[0] >= required_count
 
 
 def is_full_house(dice: List[int]) -> bool:
+    if dice is None:
+        return False
     counts = sorted(number_counts(dice), reverse=True)
     return counts[0] == 5 or (counts[0] == 3 and counts[1] == 2)
 
 
 def is_small_straight(dice: List[int]) -> bool:
+    if dice is None:
+        return False
     counts = number_counts(dice)
     return (
         counts[2] > 0
@@ -178,6 +186,8 @@ def is_small_straight(dice: List[int]) -> bool:
 
 
 def is_large_straight(dice: List[int]) -> bool:
+    if dice is None:
+        return False
     counts = number_counts(dice)
     return (
         counts[1] > 0
