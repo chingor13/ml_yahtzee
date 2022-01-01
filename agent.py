@@ -111,10 +111,10 @@ class Agent:
             verbose=0,
         )
 
-    def predict(self, state_old: State) -> List[List[Union[int, float]]]:
+    def predict(self, state_old: State) -> List[Union[int, float]]:
         if random.uniform(0, 1) < self.epsilon:
             print("using random prediction")
-            weights = to_categorical(
+            return to_categorical(
                 random.randint(0, self.output_size - 1), num_classes=self.output_size
             )
         else:
@@ -122,12 +122,7 @@ class Agent:
             prediction = self.model.predict(
                 state_old.to_data().reshape((1, state_old.num_fields))
             )
-            weights = to_categorical(
-                numpy.argmax(prediction[0]), num_classes=self.output_size
-            )
-
-        with_index = numpy.array(list(zip(weights, range(0, weights.size))))
-        return with_index[numpy.argsort(with_index[:, 0])]
+            return prediction[0]
 
 
 class RollAgent(Agent):

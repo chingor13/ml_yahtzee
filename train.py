@@ -1,6 +1,9 @@
+import random
 import click
 import os.path
-from typing import Union
+from typing import List, Union
+
+import numpy
 
 from agent import RollAgent, SlotAgent
 from yahtzee import InvalidAction, Player, Round
@@ -10,7 +13,7 @@ from yahtzee import InvalidAction, Player, Round
 @click.option("-r", "--roll-weights", "roll_weights_path", type=str)
 @click.option("-w", "--slot-weights", "slot_weights_path", type=str)
 @click.option("-i", "--iterations", "iterations", type=int, default=50)
-@click.option("-t", "--train", "train", type=bool, default=True)
+@click.option("-t", "--train", "train", type=str, default="all")
 @click.option("-s", "--batch-size", "batch_size", type=int, default=1000)
 @click.option("-e", "--epsilon", "epsilon", type=float, default=1.0)
 def run(
@@ -21,13 +24,15 @@ def run(
     batch_size: int,
     epsilon: float,
 ):
+    train_roll = train == "all" or train == "roll"
+    train_slot = train == "all" or train == "slot"
     print("Starting...")
     print("Initializing agents...")
     roll_agent = RollAgent(
         weights_path=roll_weights_path,
         input_size=19,
         output_size=32,
-        epsilon=epsilon,
+        epsilon=1,
     )
     slot_agent = SlotAgent(
         weights_path=slot_weights_path, input_size=18, output_size=13, epsilon=epsilon
@@ -52,10 +57,10 @@ def run(
             print(f"Round #{round_number}")
             round = Round()
             roll_states = []
-            while round.rolls < 3:
+            while round.rolls < 1:
                 state_old = roll_agent.get_state(player, round)
                 roll_prediction = roll_agent.predict(state_old)
-                for [weight, index] in roll_prediction[::-1]:
+                for index in ordered_prediction(roll_prediction):
                     try:
                         keep = [
                             True if char == "1" else False
@@ -68,7 +73,7 @@ def run(
 
                     break
 
-                if train:
+                if train_roll:
                     state_new = roll_agent.get_state(player, round)
                     roll_states.append(
                         (state_old, int(index), state_new, round.rolls == 3)
@@ -76,7 +81,7 @@ def run(
 
             state_old = slot_agent.get_state(player, round)
             slot_prediction = slot_agent.predict(state_old)
-            for [weight, index] in slot_prediction[::-1]:
+            for index in ordered_prediction(slot_prediction):
                 try:
                     player.record_round(round, int(index))
                     print(round.dice)
@@ -91,7 +96,7 @@ def run(
             current_score = new_score
             print(f"reward: {reward}")
 
-            if train:
+            if train_slot:
                 state_new = slot_agent.get_state(player, round)
                 done = len(player.open_slots()) == 0
                 slot_agent.train_short_memory(
@@ -99,6 +104,7 @@ def run(
                 )
                 slot_agent.remember(state_old, int(index), reward, state_new, done)
 
+            if train_roll:
                 for (state_old, number, state_new, done) in roll_states:
                     roll_agent.train_short_memory(
                         state_old, number, reward, state_new, done
@@ -107,14 +113,35 @@ def run(
 
             round_number += 1
 
-        print(f"Game {games_run}\tScore: {player.total_score()}")
         games_run += 1
+        print(f"Game {games_run}\tScore: {player.total_score()}")
 
-        if train:
-            roll_agent.replay_new(roll_agent.memory, batch_size)
+        if train_slot:
+            print("updating slot models")
             slot_agent.replay_new(slot_agent.memory, batch_size)
-            roll_agent.model.save_weights(roll_weights_path)
             slot_agent.model.save_weights(slot_weights_path)
+        
+        if train_roll:
+            print("updating roll models")
+            roll_agent.replay_new(roll_agent.memory, batch_size)
+            roll_agent.model.save_weights(roll_weights_path)
+
+
+def ordered_prediction(probability_vector: numpy.ndarray) -> List[int]:
+    full_size = len(probability_vector)
+    size = len([p for p in probability_vector if p > 0])
+    picks = list(
+        numpy.random.choice(
+            range(0, full_size), size, p=probability_vector, replace=False
+        )
+    )
+
+    if size < full_size:
+        extra_indexes = [i for i in range(0, full_size) if probability_vector[i] == 0]
+        random.shuffle(extra_indexes)
+        picks.extend(extra_indexes)
+
+    return picks
 
 
 if __name__ == "__main__":
